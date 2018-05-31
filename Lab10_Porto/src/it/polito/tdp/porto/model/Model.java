@@ -3,15 +3,16 @@ package it.polito.tdp.porto.model;
 import java.util.ArrayList;
 
 
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.*;
+import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
+import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
@@ -22,6 +23,7 @@ public class Model {
 	private PortoDAO pdao;
 	private List <Author> autori; 
 	private List <Paper> articoli; 
+	private List <DefaultEdge> edges;
 	
 	private AuthorIdMap authorIdMap; 
 	private PaperIdMap paperIdMap;
@@ -66,10 +68,6 @@ public class Model {
 		System.out.println(grafo.edgeSet().size());
 
 	}
-	
-	public Graph<Author, DefaultEdge> getGrafo() {
-		return grafo;
-	}
 
 	private List<Author> ricercaCoautori(Author a) {
 		List <Author> coautori = new ArrayList<>(); 
@@ -84,10 +82,6 @@ public class Model {
 			}
 		}
 		return coautori;
-	}
-
-	public List<Author> getAutori() {
-		return autori;
 	}
 
 	public List<Author> trovaVicini(Author autore) {
@@ -114,27 +108,54 @@ public class Model {
 
 	public List<Paper> calcolaSequenza(Author autoreUno, Author autoreDue) {
 		List <Paper> articoli = new ArrayList<>();  
-		DijkstraShortestPath<Author, DefaultEdge> spa = new DijkstraShortestPath<Author, DefaultEdge>(grafo, autoreUno, autoreDue);
-		GraphPath<Author, DefaultEdge> gp = spa.getPath();
-		Set <Author> temp = gp.getGraph().vertexSet();
-		List <Author> visitati = new ArrayList<>(temp);
-		for (int i = 0; i<visitati.size()-1; i=i+2) {
-				Author uno =  visitati.get(i);
-				Author due = visitati.get(i+1); 
-				for (Paper p: uno.getArticoli()) {
-					if (p.getAutori().contains(due) && !articoli.contains(p)) {
-						articoli.add(p); 
-						break; 
-					}
-				} 
+		
+		//trovo cammino minimo tra autoreUno e autoreDue
+		
+		ShortestPathAlgorithm<Author, DefaultEdge> spa = new DijkstraShortestPath<Author, DefaultEdge>(grafo);
+		GraphPath<Author, DefaultEdge> gp = spa.getPath(autoreUno, autoreDue);
+		
+		//PRENDO LA LISTA DI ARCHI E NON DI VERTICI!
+
+		edges = gp.getEdgeList();		
+		for (DefaultEdge e : edges) {
+				Author uno =  grafo.getEdgeSource(e);
+				Author due = grafo.getEdgeTarget(e); 
+				Paper p = this.trovaComuni(uno, due); 
+				if (p==null) {
+					throw new InternalError("Paper not found..."); 
+				}
+				articoli.add(p); 
 		}
-		System.out.println("Ci sono "+temp.size()+" autori che collegano quelli specificati");
-		System.out.println(temp.toString()); 
+		System.out.println("Ci sono "+edges.size()+" autori che collegano quelli specificati");
+		System.out.println(edges.toString()); 
 		System.out.println("Lista articoli: "+articoli.toString());
 		System.out.println(articoli.size());
 
 		return articoli;
 	}
 
+	private Paper trovaComuni(Author uno, Author due) {
+		Paper p = null; 
+		for (Paper p1: uno.getArticoli()) {
+			if (due.getArticoli().contains(p1)) {
+				p=p1; 
+				break; 
+			}
+		} 
+		return p;
+	}
+	
+	public Graph<Author, DefaultEdge> getGrafo() {
+		return grafo;
+	}
+	
+	public List<Author> getAutori() {
+		return autori;
+	}
+
+	public List<DefaultEdge> getEdges() {
+		return edges;
+	}
+	
 
 }

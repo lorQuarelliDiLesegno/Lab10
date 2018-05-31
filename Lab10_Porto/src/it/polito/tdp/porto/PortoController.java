@@ -74,6 +74,7 @@ public class PortoController {
 			return; 
 		}
     	List <Paper> articoli = model.calcolaSequenza(autoreUno, autoreDue); 
+    	txtResult.appendText("Ci sono "+model.getEdges().size()+" autori che collegano quelli selezionati \n");
     	txtResult.appendText("Sequenza di articoli da "+autoreUno.toString()+" a "+autoreDue.toString()+"\n");
     	for (Paper p : articoli) {
     		txtResult.appendText(p.toString()+"\n");
